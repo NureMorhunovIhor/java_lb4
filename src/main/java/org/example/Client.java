@@ -20,7 +20,11 @@ public class Client {
                 try {
                     String serverMessage;
                     while ((serverMessage = in.readLine()) != null) {
-                        System.out.println(serverMessage);
+                        if (serverMessage.startsWith("SYSTEM:")) {
+                            System.out.println(serverMessage.substring(7));
+                        } else {
+                            System.out.println(serverMessage);
+                        }
                     }
                 } catch (IOException e) {
                     System.out.println("Connection to server lost");

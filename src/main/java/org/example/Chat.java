@@ -15,7 +15,9 @@ public class Chat {
             System.out.println("Connected to server chat view");
             String message;
             while ((message = in.readLine()) != null) {
-                System.out.println(message);
+                if (!message.startsWith("SYSTEM:")) {
+                    System.out.println(message);
+                }
             }
         } catch (IOException e) {
             System.err.println("Chat error: " + e.getMessage());

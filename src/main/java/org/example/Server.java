@@ -49,11 +49,19 @@ public class Server {
         return password.equals(users.get(login));
     }
 
+    public static void broadcast(String message, ClientHandler sender) {
+        for (ClientHandler client : clients) {
+            if (client != sender) {
+                client.sendMessage(message);
+            }
+        }
+    }
     public static void broadcast(String message) {
         for (ClientHandler client : clients) {
             client.sendMessage(message);
         }
     }
+
 
     public static void shutdown() {
         broadcast("Server is shutting down...");
@@ -82,42 +90,61 @@ public class Server {
             try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
                 out = new PrintWriter(socket.getOutputStream(), true);
 
-                out.println("Enter login:");
-                String initialMessage = in.readLine();
+                while (true) {
+                    out.println("SYSTEM:Enter login:");
+                    String inputLogin = in.readLine();
 
-                if ("shutdown".equalsIgnoreCase(initialMessage)) {
-                    if (login == null) {
-                        Server.shutdown();
+                    if (inputLogin == null) {
+                        disconnect();
+                        return;
                     }
-                    return;
+
+                    if ("shutdown".equalsIgnoreCase(inputLogin)) {
+                        if (login == null) {
+                            Server.shutdown();
+                        }
+                        return;
+                    }
+
+                    out.println("SYSTEM:Enter password:");
+                    String inputPassword = in.readLine();
+
+                    if (inputPassword == null) {
+                        disconnect();
+                        return;
+                    }
+
+                    if (Server.authenticate(inputLogin, inputPassword)) {
+                        login = inputLogin;
+                        out.println("SYSTEM:Authentication successful!");
+                        Server.broadcast(login + " has joined the chat!", this);
+                        break;
+                    } else {
+                        out.println("SYSTEM:Authentication failed. Try again.");
+                    }
                 }
 
-
-                login = initialMessage; // Используем как логин
-                out.println("Enter password:");
-                String password = in.readLine();
-
-                if (!authenticate(login, password)) {
-                    out.println("Authentication failed");
-                    disconnect();
-                    return;
-                }
-
-                broadcast(login + " has joined the chat!");
                 String message;
                 while ((message = in.readLine()) != null) {
                     if ("exit".equalsIgnoreCase(message)) {
-                        broadcast(login + " has left the chat.");
+                        Server.broadcast(login + " has left the chat.", this);
                         break;
                     }
-                    broadcast(login + ": " + message);
+                    Server.broadcast(login + ": " + message, this); // Передаем отправителя
                 }
             } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Connection error", e);
+                Server.LOGGER.log(Level.WARNING, "Connection error", e);
             } finally {
                 disconnect();
             }
         }
+
+
+
+
+
+
+
 
         public void sendMessage(String message) {
             if (out != null) {
